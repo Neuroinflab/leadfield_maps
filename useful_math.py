@@ -155,11 +155,16 @@ def circular_grid_on_z(rad, num_pts):
 def rotate_pts_to_line(pos_list, start, end):
     '''transform some distb of points to new points between start and end'''
     start_pre, end_pre = fit_a_line(pos_list)
+    orig_dist = np.linalg.norm(np.array(start_pre) - np.array(end_pre))
+    print(orig_dist, 'original_distace')
+    post_dist = np.linalg.norm(np.array(start) -np.array(end))
+    print(post_dist, 'post_distace')
+    scale = post_dist / orig_dist
     orig = tuple(jj - ii for ii, jj in zip(start_pre, end_pre))
     orientation = tuple(jj - ii for ii, jj in zip(start, end))
     theta = obtain_angle_btwn_vecs(orig, orientation)
     r1 = axisangle_to_q(np.cross(orig, orientation), theta)
-    all_vecs = np.array(pos_list)
+    all_vecs = np.array(pos_list)*scale
     rot_vecs = np.zeros_like(all_vecs)
     for ii in range(all_vecs.shape[0]):
         rot_vecs[ii] = qv_mult(r1, tuple((all_vecs[ii])))
