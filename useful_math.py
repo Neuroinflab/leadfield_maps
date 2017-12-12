@@ -152,6 +152,21 @@ def circular_grid_on_z(rad, num_pts):
     return xx, yy, zz
 
 
+def rotate_pts_to_line(pos_list, start, end):
+    '''transform some distb of points to new points between start and end'''
+    start_pre, end_pre = fit_a_line(pos_list)
+    orig = tuple(jj - ii for ii, jj in zip(start_pre, end_pre))
+    orientation = tuple(jj - ii for ii, jj in zip(start, end))
+    theta = obtain_angle_btwn_vecs(orig, orientation)
+    r1 = axisangle_to_q(np.cross(orig, orientation), theta)
+    all_vecs = np.array(pos_list)
+    rot_vecs = np.zeros_like(all_vecs)
+    for ii in range(all_vecs.shape[0]):
+        rot_vecs[ii] = qv_mult(r1, tuple((all_vecs[ii])))
+    #rot_xx, rot_yy, rot_zz = rot_vecs.T
+    return rot_vecs
+
+
 def obtain_cylindrical_stack_btwn_pts(start_pt, end_pt, rad=1., num_pts=5):
     '''Fill a cylinder between two points,radius in with mgrid style points'''
     gt = np.complex(0, num_pts)  # density  of the points
@@ -215,11 +230,14 @@ def fit_a_line(pos_list):
 
 
 pos_list = []
-with open('traub_post_transform.csv', 'rb') as csvfile:
+with open('points/traub_post_transform.csv', 'rb') as csvfile:
     next(csvfile, None)
     spamreader = csv.reader(csvfile, delimiter=',')
     for row in spamreader:
         pos_list.append([float(row[1]), float(row[2]), float(row[3])])
+
+new_pos = rotate_pts_to_line(pos_list, (0, 0, 0), (0, 0, 1))
+
 linepts = fit_a_line(pos_list)
 radius = radius_btw_line_pts(linepts[0], linepts[1], pos_list)
 
@@ -237,19 +255,19 @@ zz = np.zeros_like(xx)
 
 plt3d = plt.figure().gca(projection='3d')
 tri = mtri.Triangulation(rot_xx, rot_yy)
-for ii in pts_on_line:
-    plt3d.plot_trisurf(rot_xx + ii[0],
-                       rot_yy + ii[1],
-                       rot_zz + ii[2], triangles=tri.triangles, color='blue')
-    # plt3d.scatter3D(rot_xx + ii[0],
-    #                 rot_yy + ii[1],
-    #                 rot_zz + ii[2], c='blue')
+# for ii in pts_on_line:
+#     plt3d.plot_trisurf(rot_xx + ii[0],
+#                        rot_yy + ii[1],
+#                        rot_zz + ii[2], triangles=tri.triangles, color='blue')
+#     # plt3d.scatter3D(rot_xx + ii[0],
+#     #                 rot_yy + ii[1],
+#     #                 rot_zz + ii[2], c='blue')
 
-plt3d.plot(xs=(start_pt[0], end_pt[0]),
-           ys=(start_pt[1], end_pt[1]),
-           zs=(start_pt[2], end_pt[2]), color='green')
+# plt3d.plot(xs=(start_pt[0], end_pt[0]),
+#            ys=(start_pt[1], end_pt[1]),
+#            zs=(start_pt[2], end_pt[2]), color='green')
 #plt3d.scatter3D(*np.array(pos_list).T, c='red')
-
+plt3d.scatter3D(new_pos[:,0], new_pos[:,1],new_pos[:,2])
 plt.show()
 
 # Obtain the planes passing through a point and origin and a perp plan to that
