@@ -18,7 +18,7 @@ def get_plane(pt2, pt3):
 
 
 def is_on_plane(A, B, C, D, pt):
-    ''' check if point on a plane error is 1e-5 '''
+    ''' check if point on a plane error is 1e-5, returns boolean'''
     return np.abs((A * pt[0]) + (B * pt[1]) + (C * pt[2]) - D) < 1e-5
 
 
@@ -65,6 +65,36 @@ def rotate_abt_normal(vec, normal):
     vec_rot = (vec * np.cos(theta)) + (np.cross(k, vec) * np.sin(theta)) + \
               (k * np.dot(k, vec) * (1 - np.cos(theta)))
     return vec_rot
+
+
+def get_plane_thr_twopts_orig(src_pos, snk_pos):
+    '''Obtain the planes passing through a point and origin and a perp plan to that
+    Used in obtaining the points on planes of interest when computing CSD
+    Uses Ax + By + Cz = D equation of the plane. Where (A, B, C) is the normal
+    of the plane'''
+
+    grid_x_plane, grid_y_plane = np.mgrid[-0.9:0.9:42j, -0.9:0.9:42j]
+    pl_A, pl_B, pl_C, pl_D = get_plane(src_pos, snk_pos)
+    print(is_on_plane(pl_A, pl_B, pl_C, pl_D, snk_pos))
+    grid_z_plane = get_irreg_pts_plane(pl_A, pl_B, pl_C, pl_D,
+                                       grid_x_plane, grid_y_plane)
+    # Ensures that the points are within the sphere.
+    idx_out = grid_x_plane**2 + grid_y_plane**2 + grid_z_plane**2 < 0.81
+    grid_x_plane = grid_x_plane[idx_out]
+    grid_y_plane = grid_y_plane[idx_out]
+    grid_z_plane = grid_z_plane[idx_out]
+    pl_P, pl_Q, pl_R, pl_S = get_perp_plane(pl_A, pl_B, pl_C, src_pos, snk_pos)
+    grid_x_perp, grid_y_perp = np.mgrid[-0.9:0.9:42j, -0.9:0.9:42j]
+    grid_z_perp = get_irreg_pts_plane(pl_P, pl_Q, pl_R, pl_S,
+                                      grid_x_perp, grid_y_perp)
+    idx_out = grid_x_perp**2 + grid_y_perp**2 + grid_z_perp**2 < 0.81
+    grid_x_perp = grid_x_perp[idx_out]
+    grid_y_perp = grid_y_perp[idx_out]
+    grid_z_perp = grid_z_perp[idx_out]
+    grid_x = np.hstack((grid_x_plane, grid_x_perp))
+    grid_y = np.hstack((grid_y_plane, grid_y_perp))
+    grid_z = np.hstack((grid_z_plane, grid_z_perp))
+    return grid_x, grid_y, grid_z
 
 
 def normalize(v, tolerance=0.00001):
@@ -152,13 +182,22 @@ def circular_grid_on_z(rad, num_pts):
     return xx, yy, zz
 
 
-def rotate_pts_to_line(pos_list, start, end):
+def squeeze_pts_betwn_line(pos_list, start, end):
     '''transform some distb of points to new points between start and end'''
     start_pre, end_pre = fit_a_line(pos_list)
+    start_dist = np.linalg.norm(start_pre)
+    end_dist = np.linalg.norm(end_pre)
+    start_dist_req = np.linalg.norm(start)
+    end_dist_req = np.linalg.norm(end)
+    if (start_dist < end_dist) and (start_dist_req < end_dist_req):
+        pass
+    else:
+        print('Inverted the orientation')
+        print('Computed based on the distance to origin')
     orig_dist = np.linalg.norm(np.array(start_pre) - np.array(end_pre))
-    print(orig_dist, 'original_distace')
-    post_dist = np.linalg.norm(np.array(start) -np.array(end))
-    print(post_dist, 'post_distace')
+    # print(orig_dist, 'original_distace')
+    post_dist = np.linalg.norm(np.array(start) - np.array(end))
+    # print(post_dist, 'post_distace')
     scale = post_dist / orig_dist
     orig = tuple(jj - ii for ii, jj in zip(start_pre, end_pre))
     orientation = tuple(jj - ii for ii, jj in zip(start, end))
@@ -168,20 +207,18 @@ def rotate_pts_to_line(pos_list, start, end):
     rot_vecs = np.zeros_like(all_vecs)
     for ii in range(all_vecs.shape[0]):
         rot_vecs[ii] = qv_mult(r1, tuple((all_vecs[ii])))
-    #rot_xx, rot_yy, rot_zz = rot_vecs.T
+    n_start, n_end = fit_a_line(rot_vecs)
+    rot_vecs = np.subtract(rot_vecs, n_start)
+    rot_vecs = np.add(rot_vecs, start)
+    print(fit_a_line(rot_vecs), 'verify that this is whats desired')
     return rot_vecs
 
 
 def obtain_cylindrical_stack_btwn_pts(start_pt, end_pt, rad=1., num_pts=5):
     '''Fill a cylinder between two points,radius in with mgrid style points'''
-    gt = np.complex(0, num_pts)  # density  of the points
-    xx, yy = np.mgrid[-rad:rad:gt, -rad:rad:gt]
-    idx_in = xx**2 + yy**2 <= rad**2  # Cylindrical
-    xx = xx[idx_in]
-    yy = yy[idx_in]
-    zz = np.zeros_like(xx)
+    xx, yy, zz = circular_grid_on_z(rad, num_pts)
     all_vecs = np.vstack((xx.flatten(), yy.flatten(), zz.flatten())).T
-    all_vecs = all_vecs.astype(float) # shape = num of pts x 3
+    all_vecs = all_vecs.astype(float)  # shape = num of pts x 3
     rot_vecs = np.zeros_like(all_vecs)
     k = (0, 0, 1)  # z axis - normal to the plane xy
     orientation = tuple(jj - ii for ii, jj in zip(start_pt, end_pt))
@@ -225,7 +262,11 @@ def fit_a_line(pos_list):
     pos_array = np.array(pos_list)
     pos_mean = pos_array.mean(axis=0)
     uu, dd, vv = np.linalg.svd(pos_array - pos_mean)
-    all_dists = np.linalg.norm(pos_array, axis=1)
+    project_points = np.zeros_like(pos_array)
+    for ii, pos in enumerate(pos_array):
+        project_points[ii] = closest_pt_vector(vv[0], pos_mean, pos)
+    all_dists = np.linalg.norm(project_points, axis=1)
+    # Farthest to orig
     mx_idx = np.where(all_dists == all_dists.max())[0][0]
     mn_idx = np.where(all_dists == all_dists.min())[0][0]
     start_pt = closest_pt_vector(vv[0], pos_mean, pos_array[mn_idx])
@@ -234,64 +275,51 @@ def fit_a_line(pos_list):
     return linepts
 
 
-pos_list = []
-with open('points/traub_post_transform.csv', 'rb') as csvfile:
-    next(csvfile, None)
-    spamreader = csv.reader(csvfile, delimiter=',')
-    for row in spamreader:
-        pos_list.append([float(row[1]), float(row[2]), float(row[3])])
+def load_traubs_points():
+    pos_list = []
+    with open('points/traub_post_transform.csv', 'rb') as csvfile:
+        next(csvfile, None)
+        spamreader = csv.reader(csvfile, delimiter=',')
+        for row in spamreader:
+            pos_list.append([float(row[1]), float(row[2]), float(row[3])])
+    return pos_list
 
-new_pos = rotate_pts_to_line(pos_list, (0, 0, 0), (0, 0, 1))
 
-linepts = fit_a_line(pos_list)
-radius = radius_btw_line_pts(linepts[0], linepts[1], pos_list)
+def test_plot_stack():
+    pos_list = load_traubs_points()
+    linepts = fit_a_line(pos_list)
+    radius = radius_btw_line_pts(linepts[0], linepts[1], pos_list)
+    start_pt, end_pt = linepts
+    rot_vecs, pts_on_line = obtain_cylindrical_stack_btwn_pts(start_pt, end_pt,
+                                                              rad=radius)
+    rot_xx, rot_yy, rot_zz = rot_vecs
+    tri = mtri.Triangulation(rot_xx, rot_yy)
+    plt3d = plt.figure().gca(projection='3d')
+    for ii in pts_on_line:
+        plt3d.plot_trisurf(rot_xx + ii[0],
+                           rot_yy + ii[1],
+                           rot_zz + ii[2],
+                           triangles=tri.triangles, color='blue')
+        # plt3d.scatter3D(rot_xx + ii[0],
+        #                 rot_yy + ii[1],
+        #                 rot_zz + ii[2], c='blue')
 
-start_pt = linepts[0]
-end_pt = linepts[1]
-rot_vecs, pts_on_line = obtain_cylindrical_stack_btwn_pts(start_pt, end_pt, rad=radius)
-rot_xx, rot_yy, rot_zz = rot_vecs
+    plt3d.scatter3D(*np.array(pos_list).T, c='red')
+    plt3d.plot(xs=(start_pt[0], end_pt[0]),
+               ys=(start_pt[1], end_pt[1]),
+               zs=(start_pt[2], end_pt[2]), color='green')
+    plt.show()
+    return
 
-num_pts = np.complex(0, 5)
-xx, yy = np.mgrid[-radius:radius:num_pts, -radius:radius:num_pts]
-idx_in = xx**2 + yy**2 <= radius**2
-xx = xx[idx_in]
-yy = yy[idx_in]
-zz = np.zeros_like(xx)
 
-plt3d = plt.figure().gca(projection='3d')
-tri = mtri.Triangulation(rot_xx, rot_yy)
-# for ii in pts_on_line:
-#     plt3d.plot_trisurf(rot_xx + ii[0],
-#                        rot_yy + ii[1],
-#                        rot_zz + ii[2], triangles=tri.triangles, color='blue')
-#     # plt3d.scatter3D(rot_xx + ii[0],
-#     #                 rot_yy + ii[1],
-#     #                 rot_zz + ii[2], c='blue')
+def test_transform_plot():
+    pos_list = load_traubs_points()
+    new_pos = squeeze_pts_betwn_line(pos_list, (0, 0, 0), (1, 1, 1))
+    #new_pos = squeeze_pts_betwn_line(pos_list,  (1, 1, 1), (2, 2, 2))
+    plt3d = plt.figure().gca(projection='3d')
+    plt3d.scatter3D(new_pos[:, 0], new_pos[:, 1], new_pos[:, 2])
+    plt.show()
 
-# plt3d.plot(xs=(start_pt[0], end_pt[0]),
-#            ys=(start_pt[1], end_pt[1]),
-#            zs=(start_pt[2], end_pt[2]), color='green')
-#plt3d.scatter3D(*np.array(pos_list).T, c='red')
-plt3d.scatter3D(new_pos[:,0], new_pos[:,1],new_pos[:,2])
-plt.show()
 
-# Obtain the planes passing through a point and origin and a perp plan to that
-# Used in obtaining the points on planes of interest when computing CSD
-# Uses Ax + By + Cz = D equation of the plane. Where (A, B, C) is the normal of the plane
-
-# grid_x_plane, grid_y_plane = np.mgrid[-0.9:0.9:42j, -0.9:0.9:42j]
-# pl_A, pl_B, pl_C, pl_D = get_plane(src_pos, snk_pos)
-# print is_on_plane(pl_A, pl_B, pl_C, pl_D, snk_pos)
-# grid_z_plane = get_pts_plane(pl_A, pl_B, pl_C, pl_D, grid_x_plane, grid_y_plane)
-# idx_out = grid_x_plane**2 + grid_y_plane**2 + grid_z_plane**2 < 0.81 # Ensures that the points are within the sphere.
-# grid_x_plane, grid_y_plane, grid_z_plane = grid_x_plane[idx_out], grid_y_plane[idx_out], grid_z_plane[idx_out]
-
-# pl_P, pl_Q, pl_R, pl_S = get_perp_plane(pl_A, pl_B, pl_C, dpole.src_pos, dpole.snk_pos)
-# grid_x_perp, grid_y_perp = np.mgrid[-0.9:0.9:42j, -0.9:0.9:42j]
-# grid_z_perp = get_pts_plane(pl_P, pl_Q, pl_R, pl_S, grid_x_perp, grid_y_perp)
-# idx_out = grid_x_perp**2 + grid_y_perp**2 + grid_z_perp**2 < 0.81
-# grid_x_perp, grid_y_perp, grid_z_perp = grid_x_perp[idx_out], grid_y_perp[idx_out], grid_z_perp[idx_out]
-
-# grid_x = np.hstack((grid_x_plane, grid_x_perp))
-# grid_y = np.hstack((grid_y_plane, grid_y_perp))
-# grid_z = np.hstack((grid_z_plane, grid_z_perp))
+# test_transform_plot()
+test_plot_stack()
