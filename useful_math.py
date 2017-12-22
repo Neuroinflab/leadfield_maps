@@ -312,14 +312,14 @@ def test_plot_stack():
     return
 
 
-def test_transform_plot():
+def test_plot_transform():
     pos_list = load_traubs_points()
     new_pos = squeeze_pts_betwn_line(pos_list, (0, 0, 0), (1, 1, 1))
-    #new_pos = squeeze_pts_betwn_line(pos_list,  (1, 1, 1), (2, 2, 2))
+    # new_pos = squeeze_pts_betwn_line(pos_list,  (1, 1, 1), (2, 2, 2))
     plt3d = plt.figure().gca(projection='3d')
     plt3d.scatter3D(new_pos[:, 0], new_pos[:, 1], new_pos[:, 2])
     plt.show()
 
 
-# test_transform_plot()
-test_plot_stack()
+# test_plot_tranform()
+# test_plot_stack()

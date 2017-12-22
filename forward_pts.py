@@ -2,8 +2,6 @@ import numpy as np
 import dolfin as d
 import parameters as params
 import conductivity_c as cc
-import sys
-import csv
 import os
 
 
@@ -17,6 +15,7 @@ def sigma_tensor(mesh, conductivity):
         c11 = assign(os.path.join(params.anis_path, "sigma_anis_d3.xml.gz"))
         c12 = assign(os.path.join(params.anis_path, "sigma_anis_d4.xml.gz"))
         c22 = assign(os.path.join(params.anis_path, "sigma_anis_d5.xml.gz"))
+        print('Anisotropic case')
         c = d.Expression(cppcode=cc.anisotropy_code, degree=0)
         c.c00 = c00
         c.c01 = c01
@@ -30,8 +29,10 @@ def sigma_tensor(mesh, conductivity):
     else:
         if conductivity == 'homogeneous':
             c00 = assign(os.path.join(params.hom_path, "sigma_hom.xml.gz"))
+            print('Homogeneous case')
         elif conductivity == 'inhomogeneous':
             c00 = assign(os.path.join(params.inhom_path, "sigma_inhom.xml.gz"))
+            print('Inhomogeneous case')
         # C - code assignment remains the same for inhom and hom.
         c = d.Expression(cppcode=cc.homogeneous_code, degree=0)
         c.c00 = c00
@@ -66,7 +67,7 @@ def fem_pts(conductivity, pos_list, save_as, ele_list=None):
 
     phi = d.Function(V)
     dx = d.Measure("dx")(subdomain_data=subdomain)
-    # ds = d.Measure("ds")(subdomain_data=boundaries)
+    ds = d.Measure("ds")(subdomain_data=boundaries)
 
     a = d.inner(sigma * d.grad(u), d.grad(v))*dx
     L = d.Constant(0)*v*dx()
@@ -76,12 +77,12 @@ def fem_pts(conductivity, pos_list, save_as, ele_list=None):
     solver.parameters["maximum_iterations"] = 1000
     solver.parameters["absolute_tolerance"] = 1E-8
     solver.parameters["error_on_nonconvergence"] = True
-    # solver.parameters["monitor_convergence"] = True
+    solver.parameters["monitor_convergence"] = True
     # solver.parameters["divergence_limit"] = 1E+6
     # solver.parameters["nonzero_initial_guess"] = True
     x = phi.vector()
-    # info(solver.parameters, True)
-    d.set_log_level(d.PROGRESS)
+    d.info(solver.parameters, verbose=True)
+    d.set_log_level(d.TRACE)
     for pos_idx, position in enumerate(pos_list):
         print('Started computing for,at: ', pos_idx, position)
         b = d.assemble(L)
@@ -101,15 +102,17 @@ def fem_pts(conductivity, pos_list, save_as, ele_list=None):
         else:
             dump_file << x
         print('Finished computing for :', pos_idx)
-    if HDF5Save:
-        dump_file.write(phi, 'phi_func')
-        dump_file.close()
-    else:
-        pass
+    # if HDF5Save:
+    #     dump_file.write(phi, 'phi_func')
+    #     dump_file.close()
+    # else:
+    #     pass
     return
 
 
 if __name__ == '__main__':
+    # import sys
+    # import csv
     # pos_list = []
     # with open('traub_post_transform.csv', 'rb') as csvfile:
     #     next(csvfile, None)
@@ -117,7 +120,7 @@ if __name__ == '__main__':
     #     for row in spamreader:
     #         pos_list.append([float(row[1]), float(row[2]), float(row[3])])
     pos_list = [[5.196, 22.913, -4.9957]]
-    fem_pts('inhomogeneous', pos_list, 'test_i.h5')
+    fem_pts('anisotropic', pos_list, 'test_ani_i.h5')
     # if len(sys.argv) == 3:
     #     print('Running process ', sys.argv[-1], 'of ', sys.argv[-2])
     #     big_loop(pos_list, int(sys.argv[-1]), int(sys.argv[-2]))

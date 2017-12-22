@@ -3,10 +3,11 @@ import dolfin as d
 import numpy as np
 
 
-dti_path = os.path.abspath('/home/chaitanya/ratty/dti_package')
-points_path = os.path.abspath('/home/chaitanya/ratty/leadfield_atlas/points')
-mesh_path = os.path.abspath('/home/chaitanya/ratty/leadfield_atlas/mesh')
-sigmas_path = os.path.abspath('/home/chaitanya/ratty/leadfield_atlas/sigmas')
+curr_dir = os.getcwd()
+dti_path = os.path.join(curr_dir, os.pardir, 'dti_package')
+points_path = os.path.join(curr_dir, 'points')
+mesh_path = os.path.join(curr_dir, 'mesh')
+sigmas_path = os.path.join(curr_dir, 'sigmas')
 
 anis_path = os.path.join(sigmas_path, 'anis')
 inhom_path = os.path.join(sigmas_path, 'inhom')
