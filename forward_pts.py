@@ -1,8 +1,10 @@
+
 import numpy as np
 import dolfin as d
 import parameters as params
 import conductivity_c as cc
 import os
+import sys
 
 
 def sigma_tensor(mesh, conductivity):
@@ -63,18 +65,26 @@ def set_solver():
     return solver
 
 
-def fem_pts(conductivity, pos_list, save_as, ele_list=None):
-    if save_as.find('.h5') > -1:
+def fem_pts(conductivity, pos_list, save_dest, ele_list=None, sel_idx=None):
+    NPYSave = False
+    HDF5Save = False
+    if save_dest.find('.h5') > -1:
         HDF5Save = True
-        dump_file = d.HDF5File(d.mpi_comm_world(), save_as, 'w')
-    elif save_as.find('.xml.gz'):
-        HDF5Save = False
-        dump_file = d.File(save_as)
+        dump_file = d.HDF5File(d.mpi_comm_world(), save_dest, 'w')
+    elif save_dest.find('.npy') > -1:
+        if not ele_list:
+            print('Expecting ele_list argument')
+        else:
+            NPYSave = True
     else:
-        print('Only .h5 or .xml.gz supported')
+        print('Only .h5 (entire mesh space), .npy (known ele_pos) supported')
+        print('Will not save anything this time')
+    if not sel_idx:
+        sel_idx = range(len(pos_list))
+    print('On this process no. pt. srcs = ', len(sel_idx))
     mesh, subdomain, boundaries = params.load_meshes()
     sigma = sigma_tensor(mesh, conductivity=conductivity)
-    print('Done loading meshes and sigma')
+    print('Done loading meshes and conductivity')
     V = d.FunctionSpace(mesh, "CG", 2)
     v = d.TestFunction(V)
     u = d.TrialFunction(V)
@@ -85,54 +95,48 @@ def fem_pts(conductivity, pos_list, save_as, ele_list=None):
     A = d.assemble(a)
     # Surface of the grnd ele = 1030
     bc = d.DirichletBC(V, d.Constant(0), boundaries, 1030)
-    for pos_idx, position in enumerate(pos_list):
+
+    for curr_idx in sel_idx:
         solver = set_solver()
         phi = d.Function(V)
         x = phi.vector()
-        print('Started computing for,at: ', pos_idx, position)
+        print('Started computing for,at: ', curr_idx, pos_list[curr_idx])
         b = d.assemble(L)
         bc.apply(A, b)
-
-        xx, yy, zz = position
+        xx, yy, zz = pos_list[curr_idx]
         point = d.Point(xx, yy, zz)
         delta = d.PointSource(V, point, 1.)
         delta.apply(b)
         solver.solve(A, x, b)
-
         # file = d.File("pots_anis.pvd")
         # file << phi
-
         if HDF5Save:
-            dump_file.write(x.array(), str(pos_idx))
+            dump_file.write(x.array(), str(curr_idx))
             dump_file.flush()
-        else:
-            dump_file << x
-        print('Finished computing for :', pos_idx)
-    # if HDF5Save:
-    #     dump_file.write(phi, 'phi_func')
-    #     dump_file.close()
-    # else:
-    #     pass
+        if NPYSave:
+            vals = extract_pots(phi, np.array(ele_list))
+            np.save(save_dest, vals)
+        print('Finished computing for :', curr_idx)
     return
 
 
 if __name__ == '__main__':
-    # import sys
-    # import csv
-    # pos_list = []
-    # with open('traub_post_transform.csv', 'rb') as csvfile:
-    #     next(csvfile, None)
-    #     spamreader = csv.reader(csvfile, delimiter=',')
-    #     for row in spamreader:
-    #         pos_list.append([float(row[1]), float(row[2]), float(row[3])])
-
-    pos_list = [[5.196, 22.913, -4.9957], [8.4, 31.4, -6.151],
-                [5.5945, 22.699, -5.6637]]
-    # pos_list = [[8.4, 31.4, -6.15]]
-    fem_pts('inhomogeneous', pos_list, 'test_del_ih.h5')
-    # if len(sys.argv) == 3:
-    #     print('Running process ', sys.argv[-1], 'of ', sys.argv[-2])
-    #     big_loop(pos_list, int(sys.argv[-1]), int(sys.argv[-2]))
-    # else:
-    #     print('Running default, 1 process, first two point locs')
-    #     big_loop(pos_list[0:2], 1, 1)
+    if len(sys.argv) == 3:
+        print('Running process ', sys.argv[-1], 'of ', sys.argv[-2])
+        pos_list, conductivity, path, sbspt = params.default_run('anisotropic')
+        num_proc = int(sys.argv[-2])
+        proc_idx = int(sys.argv[-1])
+        proc_vals = np.linspace(0, len(pos_list), num_proc + 1).astype(int)
+        # diff_proc = proc_vals[proc_idx] - proc_vals[proc_idx-1]
+        pt_idxs = range(proc_vals[proc_idx - 1], proc_vals[proc_idx])
+        save_dest = os.path.join(path, sbspt + str(num_proc)
+                                 + '_' + str(proc_idx) + '.h5')
+        fem_pts(conductivity, pos_list, save_dest, sel_idx=pt_idxs)
+    else:
+        print('Running default, 1 process, three point locs')
+        pos_list = [[5.196, 22.913, -4.9957], [8.4, 31.4, -6.151],
+                    [5.5945, 22.699, -5.6637]]
+        conductivity = 'anisotropic'
+        path = params.results_path
+        save_dest = os.path.join(params.results_path, 'test_del_a.h5')
+        fem_pts(conductivity, pos_list, save_dest)

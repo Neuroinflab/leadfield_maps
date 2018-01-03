@@ -163,7 +163,7 @@ if __name__ == '__main__':
         idx_out, idx_csf, idx_grnd = id_barycenters(points_to_sample,
                                                     save=True)
         np_v1, np_v2, np_v3 = eigen_vectors(points_to_sample, save=True)
-        grid_sel = probe_points_assign(res=0.4, ipsilateral=True, save=True)
+        grid_sel = probe_points_assign(res=1.0, ipsilateral=True, save=True)
         probe_labels = probe_points_labels(grid_sel, save=True)
     else:
         print('You feeling lucky punk?')

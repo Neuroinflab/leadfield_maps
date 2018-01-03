@@ -18,6 +18,7 @@ results_ani_path = os.path.join(results_path, 'anis')
 results_inhom_path = os.path.join(results_path, 'inhom')
 results_hom_path = os.path.join(results_path, 'hom')
 
+
 def load_meshes():
     mesh = d.Mesh(os.path.join(mesh_path, "mesh_setup.xml"))
     subdomain = d.MeshFunction("size_t", mesh,
@@ -62,3 +63,16 @@ def load_eigen_vectors():
     np_v2 = eig_vecs['np_v2']
     np_v3 = eig_vecs['np_v3']
     return np_v1, np_v2, np_v3
+
+
+def default_run(conductivity='anisotropic'):
+    pos = np.load(os.path.join(points_path, 'probe_points_ipsi_1.0.npy'))
+    pos_list = pos.tolist()
+    if conductivity == 'anisotropic':
+        path = results_ani_path
+    elif conductivity == 'inhomogeneous':
+        path = results_inhom_path
+    else:
+        path = results_hom_path
+    sbspt = 'def_'
+    return pos_list, conductivity, path, sbspt

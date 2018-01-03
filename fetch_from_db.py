@@ -4,7 +4,7 @@ import tarfile
 import os
 
 #Low res
-points_url = 'https://www.dropbox.com/s/bmjc08m9dgi9vha/points.tar.gz?dl=1'
+points_url = 'https://www.dropbox.com/s/d4pnzd8jfi7okvd/points.tar.gz?dl=1'
 sigmas_url = 'https://www.dropbox.com/s/xjc6v4bv5uvhwda/sigmas.tar.gz?dl=1'
 mesh_url = 'https://www.dropbox.com/s/413x4dhxy7g9fle/mesh.tar.gz?dl=1'
 
