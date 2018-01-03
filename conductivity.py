@@ -5,9 +5,9 @@ import parameters as params
 import os
 import sys
 
-sig_ele = 10000
-sig_air = 0.00001
-sig_zero = 0.0
+sig_ele = 1e+07
+sig_air = 1e-14
+sig_zero = 0.00
 
 sig_csf = 1.5  # See M.Rullmann, NeuroImage 44 (2009) Table 1
 sig_brain = 0.33

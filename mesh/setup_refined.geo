@@ -81,7 +81,7 @@ Physical Surface (extrnsurfPhy) = {theloops[1]};
 
 Merge "case3.msh";
 // SEE t13.geo
-RefineMesh;
+// RefineMesh;
 
 brainsurfLoop = newreg;
 Surface Loop(brainsurfLoop) = {2 : 19};
