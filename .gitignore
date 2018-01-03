@@ -15,6 +15,11 @@ __pycache__/
 *.msh
 *.stl
 
+
+# vtk paraview
+*.pvd
+*.vtu
+
 # C extensions
 *.so
 

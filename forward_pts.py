@@ -49,6 +49,20 @@ def extract_pots(phi, positions):
     return compt_values
 
 
+def set_solver():
+    # "hypre_amg") #"hypre_euclid") # "hypre_amg") # "petsc_amg" "petsc_amg"
+    solver = d.KrylovSolver("cg", "hypre_amg")
+    solver.parameters["maximum_iterations"] = 1000
+    solver.parameters["absolute_tolerance"] = 1E-8
+    solver.parameters["error_on_nonconvergence"] = True
+    solver.parameters["monitor_convergence"] = True
+    # solver.parameters["divergence_limit"] = 1E+6
+    # solver.parameters["nonzero_initial_guess"] = True
+    d.info(solver.parameters, verbose=True)
+    d.set_log_level(d.PROGRESS)
+    return solver
+
+
 def fem_pts(conductivity, pos_list, save_as, ele_list=None):
     if save_as.find('.h5') > -1:
         HDF5Save = True
@@ -64,38 +78,30 @@ def fem_pts(conductivity, pos_list, save_as, ele_list=None):
     V = d.FunctionSpace(mesh, "CG", 2)
     v = d.TestFunction(V)
     u = d.TrialFunction(V)
-
-    phi = d.Function(V)
     dx = d.Measure("dx")(subdomain_data=subdomain)
-    ds = d.Measure("ds")(subdomain_data=boundaries)
-
+    # ds = d.Measure("ds")(subdomain_data=boundaries)
     a = d.inner(sigma * d.grad(u), d.grad(v))*dx
     L = d.Constant(0)*v*dx()
     A = d.assemble(a)
-    # "hypre_amg") #"hypre_euclid") # "hypre_amg") # "petsc_amg" "petsc_amg"
-    solver = d.KrylovSolver("cg", "hypre_amg")
-    solver.parameters["maximum_iterations"] = 1000
-    solver.parameters["absolute_tolerance"] = 1E-8
-    solver.parameters["error_on_nonconvergence"] = True
-    solver.parameters["monitor_convergence"] = True
-    # solver.parameters["divergence_limit"] = 1E+6
-    # solver.parameters["nonzero_initial_guess"] = True
-    x = phi.vector()
-    d.info(solver.parameters, verbose=True)
-    d.set_log_level(d.TRACE)
+    # Surface of the grnd ele = 1030
+    bc = d.DirichletBC(V, d.Constant(0), boundaries, 1030)
     for pos_idx, position in enumerate(pos_list):
+        solver = set_solver()
+        phi = d.Function(V)
+        x = phi.vector()
         print('Started computing for,at: ', pos_idx, position)
         b = d.assemble(L)
-        bc = d.DirichletBC(V, d.Constant(0), boundaries, 1030)
-        # Surface of the grnd ele = 1030
         bc.apply(A, b)
+
         xx, yy, zz = position
         point = d.Point(xx, yy, zz)
         delta = d.PointSource(V, point, 1.)
         delta.apply(b)
         solver.solve(A, x, b)
-        # file = File("pots_anis.pvd")
+
+        # file = d.File("pots_anis.pvd")
         # file << phi
+
         if HDF5Save:
             dump_file.write(x.array(), str(pos_idx))
             dump_file.flush()
@@ -119,8 +125,11 @@ if __name__ == '__main__':
     #     spamreader = csv.reader(csvfile, delimiter=',')
     #     for row in spamreader:
     #         pos_list.append([float(row[1]), float(row[2]), float(row[3])])
-    pos_list = [[5.196, 22.913, -4.9957]]
-    fem_pts('anisotropic', pos_list, 'test_ani_i.h5')
+
+    pos_list = [[5.196, 22.913, -4.9957], [8.4, 31.4, -6.151],
+                [5.5945, 22.699, -5.6637]]
+    # pos_list = [[8.4, 31.4, -6.15]]
+    fem_pts('inhomogeneous', pos_list, 'test_del_ih.h5')
     # if len(sys.argv) == 3:
     #     print('Running process ', sys.argv[-1], 'of ', sys.argv[-2])
     #     big_loop(pos_list, int(sys.argv[-1]), int(sys.argv[-2]))

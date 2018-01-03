@@ -13,6 +13,10 @@ anis_path = os.path.join(sigmas_path, 'anis')
 inhom_path = os.path.join(sigmas_path, 'inhom')
 hom_path = os.path.join(sigmas_path, 'hom')
 
+results_path = os.path.join(curr_dir, 'results')
+results_ani_path = os.path.join(results_path, 'anis')
+results_inhom_path = os.path.join(results_path, 'inhom')
+results_hom_path = os.path.join(results_path, 'hom')
 
 def load_meshes():
     mesh = d.Mesh(os.path.join(mesh_path, "mesh_setup.xml"))
