@@ -2,7 +2,7 @@
 import os
 import parameters as params
 
-num_proc = 10
+num_proc = 7
 pos_list, conductivity, path, sbspt = params.default_run('anisotropic')
 
 

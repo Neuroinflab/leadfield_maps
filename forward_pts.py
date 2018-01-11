@@ -123,7 +123,7 @@ def fem_pts(conductivity, pos_list, save_dest, ele_list=None, sel_idx=None):
 if __name__ == '__main__':
     if len(sys.argv) == 3:
         print('Running process ', sys.argv[-1], 'of ', sys.argv[-2])
-        pos_list, conductivity, path, sbspt = params.default_run('anisotropic')
+        pos_list, conductivity, path, sbspt = params.default_run('homogeneous')
         num_proc = int(sys.argv[-2])
         proc_idx = int(sys.argv[-1])
         proc_vals = np.linspace(0, len(pos_list), num_proc + 1).astype(int)
