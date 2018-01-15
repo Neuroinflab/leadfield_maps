@@ -2,6 +2,7 @@ from math import erf
 import dolfin as d
 import numpy as np
 import parameters as params
+import meshes
 import os
 import sys
 
@@ -40,7 +41,7 @@ def tensor_components(mesh):
 
 def compute_conductivity(conductivity, save=False):
     print('Computing sigma tensor for case :', conductivity)
-    mesh = params.load_just_mesh()
+    mesh = meshes.load_just_mesh()
     cells_all = d.cells(mesh)
     idx_out, idx_grnd, idx_csf, np_fa = params.load_barycenters_ids()
     points_to_sample = params.load_barycenters()

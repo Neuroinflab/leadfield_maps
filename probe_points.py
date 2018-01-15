@@ -2,8 +2,10 @@ import vtk_functions as vtk_utils
 from vtk.util.numpy_support import vtk_to_numpy
 import parameters as params
 import numpy as np
+import meshes
 import os
 import sys
+import csv
 
 
 def probe_points_assign(res, ipsilateral, save=False):
@@ -62,10 +64,31 @@ def probe_points_labels(points, save=False):
     return np_labels
 
 
+def compute_point_wts(points, save=False):
+    labels_idx = probe_points_labels(points)
+    unique_idx, counts = np.unique(labels_idx, return_counts=True)
+    # Idea is to give a dummy weight to the point location based on freq occ.
+    # The extension of this to to enable a sorting based on amplitudes
+    # as factions
+    unique_ordered = [x for _, x in sorted(zip(counts, unique_idx),
+                                           key=lambda pair: pair[0],
+                                           reverse=True)]
+    first_wt = [(ii+1) * jj for ii, jj in enumerate(np.sort(counts))][::-1]
+    assert(len(np.unique(first_wt)) == len(counts))
+    points_wt = [first_wt[unique_ordered.index(kk)] for kk in labels_idx]
+    # print([labels_txt[ii] for ii in unique_ordered])
+    # print(np.sort(counts)[::-1])
+    # print(counts_wt, unique_ordered, labels_idx, points_wt)
+    if save:
+        np.save(os.path.join(params.points_path,
+                             'probe_pts_wts.npy'), points_wt)
+    return points_wt
+
+
 def compute_barycenters(save=False):
     ''' Loads mesh, gets cells of the mesh, and evals barycenters
     dumps this in mesh_midpts.npz'''
-    mesh, subdomains, boundaries = params.load_meshes()
+    mesh, subdomains, boundaries = meshes.load_meshes()
     cells = params.d.cells(mesh)
     count = 0
     pts_x = []
@@ -164,7 +187,12 @@ if __name__ == '__main__':
                                                     save=True)
         np_v1, np_v2, np_v3 = eigen_vectors(points_to_sample, save=True)
         grid_sel = probe_points_assign(res=1.0, ipsilateral=True, save=True)
+    elif sys.argv[-1] == 'default':
+        print('Computing just probe_labels and points_wts')
+        print('Previous files will be overwritten')
+        grid_sel = probe_points_assign(res=1.0, ipsilateral=True, save=True)
         probe_labels = probe_points_labels(grid_sel, save=True)
+        probe_wts = compute_point_wts(grid_sel, save=True)
     else:
         print('You feeling lucky punk?')
         pass

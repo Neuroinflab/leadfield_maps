@@ -1,5 +1,6 @@
 
 import os
+import meshes
 import numpy as np
 import dolfin as d
 import parameters as params
@@ -28,7 +29,7 @@ def load_vector(dump_file, mesh, label):
 
 
 def test_few_points():
-    mesh = params.load_just_mesh()
+    mesh = meshes.load_just_mesh()
     pos_list = [[5.196, 22.913, -4.9957], [8.4, 31.4, -6.151],
                 [5.5945, 22.699, -5.6637]]
     dump_file = load_file(os.path.join(params.results_path, 'test_del_ih.h5'),
@@ -48,7 +49,7 @@ def how_many_procs(path, sbspt):
 
 
 def obtain_unsorted_srcVele(conductivity, save=False):
-    mesh = params.load_just_mesh()
+    mesh = meshes.load_just_mesh()
     pos_list, conductivity, path, sbspt = params.default_run(conductivity)
     num_pts = len(pos_list)
     phi_mat = np.zeros((num_pts, num_pts))
@@ -71,3 +72,5 @@ def obtain_unsorted_srcVele(conductivity, save=False):
 
 
 obtain_unsorted_srcVele('anisotropic', save=True)
+obtain_unsorted_srcVele('homogeneous', save=True)
+obtain_unsorted_srcVele('inhomogeneous', save=True)

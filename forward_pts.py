@@ -3,6 +3,7 @@ import numpy as np
 import dolfin as d
 import parameters as params
 import conductivity_c as cc
+import meshes
 import os
 import sys
 
@@ -82,7 +83,7 @@ def fem_pts(conductivity, pos_list, save_dest, ele_list=None, sel_idx=None):
     if not sel_idx:
         sel_idx = range(len(pos_list))
     print('On this process no. pt. srcs = ', len(sel_idx))
-    mesh, subdomain, boundaries = params.load_meshes()
+    mesh, subdomain, boundaries = meshes.load_meshes()
     sigma = sigma_tensor(mesh, conductivity=conductivity)
     print('Done loading meshes and conductivity')
     V = d.FunctionSpace(mesh, "CG", 2)
