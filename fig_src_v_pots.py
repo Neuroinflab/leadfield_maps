@@ -4,6 +4,8 @@
 
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
+from mpl_toolkits.axes_grid1 import make_axes_locatable
+from matplotlib import colors as clr
 import numpy as np
 import parameters as params
 import csv
@@ -21,7 +23,8 @@ def fetch_label_dicts():
     return labels_txt, labels_clr
 
 
-conds = ['homogeneous', 'inhomogeneous', 'anisotropic']
+#conds = ['homogeneous', 'inhomogeneous', 'anisotropic']
+conds = ['anisotropic']
 phi_mats = []
 for case in conds:
     pos_list, conductivity, path, sbspt = params.default_run(case)
@@ -45,28 +48,24 @@ for u_val in unique:
 
 
 def draw_color_line(ax, orientation='vertical'):
-    points = [[0, 0]]
+    points = [0]
     colors = []
     labels = []
     labels_txt, labels_clr = fetch_label_dicts()
     ii = 0
     for kk, val in enumerate(unique_list_lens):
-        if orientation == 'vertical':
-            points.append([0, val + ii])
-        else:
-            points.append([val + ii, 0])
+        points.append(val + ii)
         qq = np.where(point_wts == unique[kk])
         tt = labels_idx[qq[0][0]]
         colors.append([cc / 255. for cc in labels_clr[tt]])
         labels.append(labels_txt[tt])
         ii += val
     points = np.array(points)
-    print(points[:, 1])
     for pp in range(len(colors)):
-        print(points[pp:pp+1, 1])
-        ax.plot([points[pp, 0], points[pp+1, 0]],
-                [points[pp, 1], points[pp+1, 1]],
-                color=colors[pp], linewidth=5.)
+        ax.plot([1000, 1000], [points[pp], points[pp+1]],
+                color=colors[pp], lw=5, clip_on=True)
+        if pp < 10:
+            ax.text(1050, (points[pp] + points[pp+1])/2., labels[pp])
     return ax
     
 # fig = plt.figure()
@@ -74,14 +73,26 @@ def draw_color_line(ax, orientation='vertical'):
 # #                norm=LogNorm(vmin=0.01, vmax=np.max(4.)))
 # plt.colorbar()
 
-gs = gridspec.GridSpec(2, 3, height_ratios=[1, 0.05])
+#gs = gridspec.GridSpec(2, 1, height_ratios=[1, 0.05])
+fig = plt.figure(figsize=(12, 10))
 for jj, case in enumerate(conds):
-    ax = plt.subplot(gs[0, jj])
+    ax = plt.subplot(111)
     data = phi_mats[jj][phi_seg_list, ][:, phi_seg_list, ]
+    print(np.min(data), np.max(data))
     np.fill_diagonal(data, 0)
-    im = plt.imshow(data[::-1], cmap=plt.cm.Greens, vmin=0.0, vmax=4.0)
-    cax = plt.subplot(gs[1, jj])
-    plt.colorbar(im, cax=cax, orientation='horizontal')
+    #im = ax.pcolormesh(data, norm=clr.LogNorm(vmin=np.min(data), vmax=np.max(data)),  cmap=plt.cm.gray)#, vmin=0.0, vmax=3.0)
+    im = ax.pcolormesh(data, norm=clr.PowerNorm(gamma=1./2.),  cmap=plt.cm.gray_r)#, vmin=0.0, vmax=3.0)
     draw_color_line(ax)
+    ax.set_aspect('equal')
+    ax.set_xlabel('Electrode number')
+    ax.set_ylabel('Source number')
+    ax.spines['top'].set_visible(False)                                                                
+    ax.spines['right'].set_visible(False)
+    divider = make_axes_locatable(ax)
+    cax = divider.append_axes("bottom", size="5%", pad=.7)
+    #cax = plt.subplot(gs[1, jj])
+    plt.colorbar(im, cax=cax, orientation='horizontal')
     
-plt.show()
+
+plt.savefig('points_v_points.png', dpi=300)
+#plt.show()

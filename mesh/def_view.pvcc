@@ -1,0 +1,38 @@
+<?xml version="1.0"?>
+<PVCameraConfiguration description="ParaView camera configuration" version="1.0">
+  <Proxy group="views" type="RenderView" id="1945" servers="21">
+    <Property name="CameraPosition" id="1945.CameraPosition" number_of_elements="3">
+      <Element index="0" value="-35.9731998576263"/>
+      <Element index="1" value="36.9446025203459"/>
+      <Element index="2" value="16.8004373645186"/>
+    </Property>
+    <Property name="CameraFocalPoint" id="1945.CameraFocalPoint" number_of_elements="3">
+      <Element index="0" value="8.84106628465281"/>
+      <Element index="1" value="20.993222338068"/>
+      <Element index="2" value="-8.00975948935876"/>
+    </Property>
+    <Property name="CameraViewUp" id="1945.CameraViewUp" number_of_elements="3">
+      <Element index="0" value="0.404615445271067"/>
+      <Element index="1" value="-0.237017662475637"/>
+      <Element index="2" value="0.883237776095815"/>
+    </Property>
+    <Property name="CenterOfRotation" id="1945.CenterOfRotation" number_of_elements="3">
+      <Element index="0" value="9.84481763839722"/>
+      <Element index="1" value="17.0485162734985"/>
+      <Element index="2" value="-9.7879753112793"/>
+    </Property>
+    <Property name="RotationFactor" id="1945.RotationFactor" number_of_elements="1">
+      <Element index="0" value="1"/>
+    </Property>
+    <Property name="CameraViewAngle" id="1945.CameraViewAngle" number_of_elements="1">
+      <Element index="0" value="30"/>
+    </Property>
+    <Property name="CameraParallelScale" id="1945.CameraParallelScale" number_of_elements="1">
+      <Element index="0" value="20.3299269635525"/>
+    </Property>
+    <Property name="CameraParallelProjection" id="1945.CameraParallelProjection" number_of_elements="1">
+      <Element index="0" value="0"/>
+      <Domain name="bool" id="1945.CameraParallelProjection.bool"/>
+    </Property>
+  </Proxy>
+</PVCameraConfiguration>

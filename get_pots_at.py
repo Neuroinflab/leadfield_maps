@@ -70,7 +70,32 @@ def obtain_unsorted_srcVele(conductivity, save=False):
         np.save(os.path.join(path, phi_mat_fname), phi_mat)
     return phi_mat
 
+def obtain_traubs_srcVele(conductivity, save=False):
+    mesh = meshes.load_just_mesh()
+    pos_list, conductivity, path, sbspt = params.default_run(conductivity)
+    num_pts = len(pos_list)
+    ele_list = params.load_traubs_points() # points from traubs colum
+    num_ele = len(ele_list)
+    phi_mat = np.zeros((num_pts, num_ele))
+    num_proc = how_many_procs(path, sbspt)
+    proc_vals = np.linspace(0, num_pts, num_proc + 1).astype(int)
+    for kk in range(num_proc):
+        proc_idx = kk + 1  # as proc ids start from 1
+        pt_idxs = range(proc_vals[proc_idx - 1], proc_vals[proc_idx])
+        f_string = sbspt + str(num_proc) + '_' + str(proc_idx) + '.h5'
+        dump_file = load_file(os.path.join(path, f_string), mesh)
+        for pt in pt_idxs:
+            this_phi = load_vector(dump_file, mesh, str(pt))
+            phi_mat[pt, :] = extract_pots(this_phi, np.array(ele_list))
+        dump_file.close()
+        print('Finished processing proc number: ', proc_idx)
+    if save:
+        phi_mat_fname = sbspt + conductivity + '_traub_phi_mat.npy'
+        np.save(os.path.join(path, phi_mat_fname), phi_mat)
+    return phi_mat
 
-obtain_unsorted_srcVele('anisotropic', save=True)
-obtain_unsorted_srcVele('homogeneous', save=True)
-obtain_unsorted_srcVele('inhomogeneous', save=True)
+
+# obtain_unsorted_srcVele('anisotropic', save=True)
+# obtain_unsorted_srcVele('homogeneous', save=True)
+# obtain_unsorted_srcVele('inhomogeneous', save=True)
+obtain_traubs_srcVele('anisotropic', save=True)
