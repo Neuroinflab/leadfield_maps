@@ -49,7 +49,7 @@ def probe_points_assign(res, ipsilateral, save=False):
             save_as = 'probe_points_'
         np.save(os.path.join(params.points_path, save_as + str(res) + '.npy'),
                 selected_points)
-        print 'Dumped points inside brain in ' + save_as + str(res) + '.npy'
+        print('Dumped points inside brain in ' + save_as + str(res) + '.npy')
     return selected_points
 
 

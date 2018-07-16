@@ -1,12 +1,13 @@
 
 import os
-import parameters as params
+# import parameters as params
 
 num_proc = 7
-pos_list, conductivity, path, sbspt = params.default_run('anisotropic')
+# pos_list, conductivity, path, sbspt = params.default_run('anisotropic')
 
 
-def gen_bash_script(pos_list, num_proc):
+# def gen_bash_script(pos_list, num_proc):
+def gen_bash_script(num_proc):
     # proc_vals = np.linspace(0, len(pos_list), num_proc + 1).astype(int)
     filename = 'parallel_fem.sh'
     if os.path.isfile(filename):
@@ -27,4 +28,5 @@ def gen_bash_script(pos_list, num_proc):
     f.close()
 
 
-gen_bash_script(pos_list, num_proc)
+# gen_bash_script(pos_list, num_proc)
+gen_bash_script(num_proc)
