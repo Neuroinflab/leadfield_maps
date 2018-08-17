@@ -95,10 +95,26 @@ def load_hippocampus_points():
     #print(refined_list, len(refined_list))
     return refined_list
 
+def load_cortex_95_points():
+    pos_list = []
+    with open(os.path.join(points_path, 'cortex_L_0.95.csv'), 'r') as csvfile:
+        spamreader = csv.reader(csvfile, delimiter=' ')
+        for row in spamreader:
+            pos_list.append([float(row[0]), float(row[1]), float(row[2])])
+    refined_list = pos_list[::10]
+    return refined_list
+
+def ecog_run():
+    conductivity = 'anisotropic'
+    pos_list = load_cortex_95_points()
+    path = results_ani_path
+    sbspt = 'ecog_'
+    return pos_list, conductivity, path, sbspt
+
 
 def hippo_eeg_run():
     conductivity = 'anisotropic'
     pos_list = load_hippocampus_points()
     path = results_ani_path
-    sbspt = 'hippo_'   # meaning default_run
+    sbspt = 'hippo_'
     return pos_list, conductivity, path, sbspt
