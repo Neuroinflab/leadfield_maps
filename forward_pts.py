@@ -126,7 +126,7 @@ if __name__ == '__main__':
         print('Running process ', sys.argv[-1], 'of ', sys.argv[-2])
         # pos_list, conductivity, path, sbspt = params.default_run('homogeneous')
         # pos_list, conductivity, path, sbspt = params.hippo_eeg_run()
-        pos_list, conductivity, path, sbspt = params.ecog_run()
+        pos_list, conductivity, path, sbspt = params.ecog_run(size=0.89)
         num_proc = int(sys.argv[-2])
         proc_idx = int(sys.argv[-1])
         proc_vals = np.linspace(0, len(pos_list), num_proc + 1).astype(int)

@@ -8,8 +8,18 @@ import numpy as np
 import csv
 
 
+def get_plane_thr_three_pts(pt1, pt2, pt3):
+    ''' Get a plane passing through three points
+    Ax + By + Cz = D, returns A, B, C, D'''
+    diff_line = [ii - jj for ii, jj in zip(pt1, pt2)]
+    diff_line2 = [ii - jj for ii, jj in zip(pt2, pt3)]
+    A, B, C = np.cross(diff_line, diff_line2)
+    D = get_plane_thr_pt(A, B, C, pt1)
+    return A, B, C, D
+
 def get_plane(pt2, pt3):
-    ''' Get a plane passing through two points and origin '''
+    ''' Get a plane passing through two points and origin
+    Ax + By + Cz = D , returns A, B, C, D'''
     A = pt2[1] * pt3[2] - pt3[1] * pt2[2]
     B = pt2[2] * pt3[0] - pt3[2] * pt2[0]
     C = pt2[0] * pt3[1] - pt3[0] * pt2[1]
@@ -18,17 +28,20 @@ def get_plane(pt2, pt3):
 
 
 def is_on_plane(A, B, C, D, pt):
-    ''' check if point on a plane error is 1e-5, returns boolean'''
+    ''' check if point on a plane error is 1e-5, returns boolean
+    Ax + By + Cz = D , returns Bool'''
     return np.abs((A * pt[0]) + (B * pt[1]) + (C * pt[2]) - D) < 1e-5
 
 
 def get_plane_thr_pt(A, B, C, pt):
-    ''' get the factor D for a given plane normal and pt passing'''
+    ''' get the factor D for a given plane normal and pt passing 
+    Ax + By + Cz = D , returns D  '''
     return (A * pt[0]) + (B * pt[1]) + (C * pt[2])
 
 
 def get_irreg_pts_plane(A, B, C, D, grid_x, grid_y):
-    ''' Obtain an irregular (obtuse) grid of pts on a given plane'''
+    ''' Obtain an irregular (obtuse) grid of pts on a given plane
+    Ax + By + Cz = D, given x, y coords returns z '''
     num_pts = grid_x.shape[0]**2
     grid_z = np.zeros((num_pts)) - D
     grid_z += A * grid_x.reshape(num_pts,)

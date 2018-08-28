@@ -1,32 +1,65 @@
-import vtk_functions as vtk_utils
-from vtk.util.numpy_support import vtk_to_numpy
-import parameters as params
-import numpy as np
-import meshes
 import os
 import sys
-import csv
+
+import parameters as params
+import numpy as np
+
+import vtk_functions as vtk_utils
+from vtk.util.numpy_support import vtk_to_numpy
 
 
-def probe_points_assign(res, ipsilateral, save=False):
-    if not ipsilateral:
-        xmin, xmax = [1.8, 18.0]
-        print('Points do not inc. cerebellum.')
-        print('Both hemispheres')
-    else:
-        xmin, xmax = [1.8, 9.85]
-        print('Points do not inc. cerebellum.')
-        print('ipsilateral hemisphere (L side) only')
-    ymin, ymax = [13.25, 34.35]
-    zmin, zmax = [-13.2, -2.3]
-    # all inclusive.
-    # x : 0 to 20
-    # y : 4 to 36
-    # z : -18.0 to 0
-    # obtaining a fine grid first
+def fetch_cut_planes(xx, yy, zz):
+    '''gets you planes (as np.array points ) for sag, ax and trav planes'''
+    xmin, xmax, ymin, ymax, zmin, zmax = params.limits_brain(ipsilateral=True)
+    plane_pt_idx = []
+    # X plane
+    pl_y, pl_z = np.mgrid[ymin:ymax:1.,
+                          zmin:zmax:1.]
+    pl_y = pl_y.flatten()
+    pl_z = pl_z.flatten()
+    pl_x = np.zeros_like(pl_y) + xx
+    x_plane = np.vstack((pl_x, pl_y, pl_z)).T
+    x_plane = inside_brain(x_plane)
+    # Y plane
+    pl_x, pl_z = np.mgrid[xmin:xmax:1.,
+                          zmin:zmax:1.]
+    pl_x = pl_x.flatten()
+    pl_z = pl_z.flatten()
+    pl_y = np.zeros_like(pl_x) + yy
+    y_plane = np.vstack((pl_x, pl_y, pl_z)).T
+    y_plane = inside_brain(y_plane)
+    # Z plane
+    pl_x, pl_y = np.mgrid[xmin:xmax:1.,
+                          ymin:ymax:1.]
+    pl_x = pl_x.flatten()
+    pl_y = pl_y.flatten()
+    pl_z = np.zeros_like(pl_y) + zz
+    z_plane = np.vstack((pl_x, pl_y, pl_z)).T
+    z_plane = inside_brain(z_plane)
+    return x_plane, y_plane, z_plane
+
+
+def get_cubic_grid(res, ipsilateral):
+    xmin, xmax, ymin, ymax, zmin, zmax = params.limits_brain(ipsilateral)
     xx, yy, zz = np.mgrid[xmin:xmax:res,
                           ymin:ymax:res,
                           zmin:zmax:res]
+    return xx, yy, zz
+
+
+def inside_brain(points_to_sample):
+    seg = img_wrapper('brain_mask_refined.nii.gz', 'mask')
+    seg.probe_points(points_to_sample)
+    print('Done probing for points inside brain mask refined')
+    np_seg = vtk_to_numpy(seg.get_array())
+    idx = np.where(np_seg > 0)
+    print('Total points inside brain volume: ', len(idx[0]))
+    selected_points = points_to_sample[idx]
+    return selected_points
+
+
+def probe_points_assign(res, ipsilateral, save=False):
+    xx, yy, zz = get_cubic_grid(res, ipsilateral)
     xx = xx.flatten()
     yy = yy.flatten()
     zz = zz.flatten()
@@ -35,13 +68,7 @@ def probe_points_assign(res, ipsilateral, save=False):
     print('Total points inside cubic meshgrid: ', tpoints)
     print('Now probing for points inside brain')
     # probe points where its non zero to give points inside brain.
-    seg = img_wrapper('brain_mask_refined.nii.gz', 'mask')
-    seg.probe_points(points_to_sample)
-    print('Done probing for points inside brain mask refined')
-    np_seg = vtk_to_numpy(seg.get_array())
-    idx = np.where(np_seg > 0)
-    print('Total points inside brain volume: ', len(idx[0]))
-    selected_points = points_to_sample[idx]
+    selected_points = inside_brain(points_to_sample)
     if save:
         if ipsilateral:
             save_as = 'probe_points_ipsi_'
@@ -88,8 +115,9 @@ def compute_point_wts(points, save=False):
 def compute_barycenters(save=False):
     ''' Loads mesh, gets cells of the mesh, and evals barycenters
     dumps this in mesh_midpts.npz'''
+    import meshes
     mesh, subdomains, boundaries = meshes.load_meshes()
-    cells = params.d.cells(mesh)
+    cells = meshes.d.cells(mesh)
     count = 0
     pts_x = []
     pts_y = []

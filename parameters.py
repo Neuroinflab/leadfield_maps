@@ -19,6 +19,25 @@ results_inhom_path = os.path.join(results_path, 'inhom')
 results_hom_path = os.path.join(results_path, 'hom')
 
 
+def limits_brain(ipsilateral=True):
+    if not ipsilateral:
+        xmin, xmax = [1.8, 18.0]   # LEFT - RIGHT
+        print('Points do not inc. cerebellum.')
+        print('Both hemispheres')
+    else:
+        xmin, xmax = [1.8, 9.85]   # LEFT - RIGHT
+        print('Points do not inc. cerebellum.')
+        print('ipsilateral hemisphere (L side) only')
+    ymin, ymax = [13.25, 34.35]  # posterior - anterior
+    zmin, zmax = [-13.2, -2.3]   # inferior - superior
+    # all inclusive.
+    # x : 0 to 20
+    # y : 4 to 36
+    # z : -18.0 to 0
+    # obtaining a fine grid first
+    return xmin, xmax, ymin, ymax, zmin, zmax
+
+
 def load_probe_points(filename):
     probe_points = np.load(filename)
     return probe_points
@@ -95,20 +114,21 @@ def load_hippocampus_points():
     #print(refined_list, len(refined_list))
     return refined_list
 
-def load_cortex_95_points():
+def load_cortex_points(size=0.95):
     pos_list = []
-    with open(os.path.join(points_path, 'cortex_L_0.95.csv'), 'r') as csvfile:
+    filename = 'cortex_L_'+str(size)+'.csv'
+    with open(os.path.join(points_path, filename), 'r') as csvfile:
         spamreader = csv.reader(csvfile, delimiter=' ')
         for row in spamreader:
             pos_list.append([float(row[0]), float(row[1]), float(row[2])])
     refined_list = pos_list[::10]
     return refined_list
 
-def ecog_run():
+def ecog_run(size=0.95):
     conductivity = 'anisotropic'
-    pos_list = load_cortex_95_points()
     path = results_ani_path
-    sbspt = 'ecog_'
+    pos_list = load_cortex_points(size)
+    sbspt = 'ecog' + str(size) + '_'
     return pos_list, conductivity, path, sbspt
 
 

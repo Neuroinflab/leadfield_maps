@@ -1,6 +1,7 @@
 
 import os
 import meshes
+
 import numpy as np
 import dolfin as d
 import parameters as params
@@ -42,13 +43,71 @@ def test_few_points():
     print(extract_pots(phi_3, np.array([pos_list[0], pos_list[1]])))
 
 
+def find_nearest_avail_pt(pos, xx, yy, zz):
+    '''Fetches the closes available point in pos'''
+    k = np.array((xx, yy, zz))
+    dists = np.linalg.norm(pos-k, axis=1)
+    if np.min(dists) != 0.0:
+        print('Exact point is unavailable')
+        print('Picking the closest point to the selection')
+    xx, yy, zz = pos[np.argmin(dists), :]
+    return xx, yy, zz
+
+
 def how_many_procs(path, sbspt):
+    '''returns how many procs were used in for that particular run'''
     op_files = glob(os.path.join(path, sbspt+'*.h5'))
     prefix = op_files[0].split(sbspt)[1]
     return int(prefix.split('_')[0])
 
 
+def which_file(path, sbspt, pos, src_idx):
+    'returns the file name string where the corresp src matrix is stored'''
+    num_proc = how_many_procs(path, sbspt)
+    num_pts = len(pos)
+    proc_vals = np.linspace(0, num_pts, num_proc + 1).astype(int)
+    proc_idx = np.argmax(proc_vals > src_idx)-1
+    if proc_idx == -1:
+        proc_idx = len(proc_vals) - 1
+    f_string = os.path.join(path, sbspt + str(num_proc)
+                            + '_' + str(proc_idx) + '.h5')
+    return f_string
+    
+def obtain_orth_planes(src_loc, xx, yy, zz, conductivity, save=False):
+    ''' Sources placed at src_loc, with orth planes meeting at xx, yy, zz 
+    The pots observed at the corresponding xx, yy, zz planes is reported
+    - dumps three npy arrays corresp to each plane'''
+    mesh = meshes.load_just_mesh()
+    pos_list, conductivity, path, sbspt = params.default_run(conductivity)
+    src_x, src_y, src_z = src_loc
+    src_loc = find_nearest_avail_pt(pos_list, src_x, src_y, src_z)
+    k = np.array((src_loc))
+    dists = np.linalg.norm(pos_list-k, axis=1)
+    src_idx = np.argmin(dists)    
+    f_string = which_file(path, sbspt, pos_list, src_idx)
+    dump_file = load_file(os.path.join(path, f_string), mesh)
+    this_phi = load_vector(dump_file, mesh, str(src_idx))
+    planes = fetch_cut_planes(xx, yy, zz)
+    ### instead get this from params as a special planes
+    ### Planes get dumped from probe_points file instead - so premtively obtain these planes.
+    phi_planes = []
+    #  plane pots 
+    for ii, label in enumerate('x', 'y', 'z'):
+        ele_list = planes[ii]
+        num_ele = len(ele_list)
+        phi_mat = np.zeros((1, num_ele))
+        phi_mat[0, :] = extract_pots(this_phi, np.array(ele_list))
+        phi_planes.append(phi_mat)
+    dump_file.close()
+    print(phi_planes)
+    if save:
+        phi_mat_fname = sbspt + conductivity + '_plane_phi_mat.npy'
+        np.save(os.path.join(path, phi_mat_fname), phi_mat)
+    return phi_mat
+    
+
 def obtain_unsorted_srcVele(conductivity, save=False):
+    '''Fetch the potentials for the default run - SEEG section to test reciprocity'''
     mesh = meshes.load_just_mesh()
     pos_list, conductivity, path, sbspt = params.default_run(conductivity)
     num_pts = len(pos_list)
@@ -71,6 +130,7 @@ def obtain_unsorted_srcVele(conductivity, save=False):
     return phi_mat
 
 def obtain_traubs_srcVele(conductivity, save=False):
+    '''Fetch the potentials for the default run - SEEG section For Traubs column'''
     mesh = meshes.load_just_mesh()
     pos_list, conductivity, path, sbspt = params.default_run(conductivity)
     num_pts = len(pos_list)
@@ -98,4 +158,5 @@ def obtain_traubs_srcVele(conductivity, save=False):
 # obtain_unsorted_srcVele('anisotropic', save=True)
 # obtain_unsorted_srcVele('homogeneous', save=True)
 # obtain_unsorted_srcVele('inhomogeneous', save=True)
-obtain_traubs_srcVele('anisotropic', save=True)
+# obtain_traubs_srcVele('anisotropic', save=True)
+obtain_orth_planes(np.array((5., 23., -5.)), 5, 23., -6., 'anisotropic', save=False)
