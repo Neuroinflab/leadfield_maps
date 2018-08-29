@@ -8,35 +8,36 @@ import vtk_functions as vtk_utils
 from vtk.util.numpy_support import vtk_to_numpy
 
 
-def fetch_cut_planes(xx, yy, zz):
-    '''gets you planes (as np.array points ) for sag, ax and trav planes'''
-    xmin, xmax, ymin, ymax, zmin, zmax = params.limits_brain(ipsilateral=True)
-    plane_pt_idx = []
-    # X plane
-    pl_y, pl_z = np.mgrid[ymin:ymax:1.,
-                          zmin:zmax:1.]
-    pl_y = pl_y.flatten()
-    pl_z = pl_z.flatten()
-    pl_x = np.zeros_like(pl_y) + xx
-    x_plane = np.vstack((pl_x, pl_y, pl_z)).T
-    x_plane = inside_brain(x_plane)
-    # Y plane
-    pl_x, pl_z = np.mgrid[xmin:xmax:1.,
-                          zmin:zmax:1.]
-    pl_x = pl_x.flatten()
-    pl_z = pl_z.flatten()
-    pl_y = np.zeros_like(pl_x) + yy
-    y_plane = np.vstack((pl_x, pl_y, pl_z)).T
-    y_plane = inside_brain(y_plane)
-    # Z plane
-    pl_x, pl_y = np.mgrid[xmin:xmax:1.,
-                          ymin:ymax:1.]
-    pl_x = pl_x.flatten()
-    pl_y = pl_y.flatten()
-    pl_z = np.zeros_like(pl_y) + zz
-    z_plane = np.vstack((pl_x, pl_y, pl_z)).T
-    z_plane = inside_brain(z_plane)
-    return x_plane, y_plane, z_plane
+####### UNTESTED
+# def fetch_cut_planes(xx, yy, zz):
+#     '''gets you planes (as np.array points ) for sag, ax and trav planes'''
+#     xmin, xmax, ymin, ymax, zmin, zmax = params.limits_brain(ipsilateral=True)
+#     plane_pt_idx = []
+#     # X plane
+#     pl_y, pl_z = np.mgrid[ymin:ymax:1.,
+#                           zmin:zmax:1.]
+#     pl_y = pl_y.flatten()
+#     pl_z = pl_z.flatten()
+#     pl_x = np.zeros_like(pl_y) + xx
+#     x_plane = np.vstack((pl_x, pl_y, pl_z)).T
+#     x_plane = inside_brain(x_plane)
+#     # Y plane
+#     pl_x, pl_z = np.mgrid[xmin:xmax:1.,
+#                           zmin:zmax:1.]
+#     pl_x = pl_x.flatten()
+#     pl_z = pl_z.flatten()
+#     pl_y = np.zeros_like(pl_x) + yy
+#     y_plane = np.vstack((pl_x, pl_y, pl_z)).T
+#     y_plane = inside_brain(y_plane)
+#     # Z plane
+#     pl_x, pl_y = np.mgrid[xmin:xmax:1.,
+#                           ymin:ymax:1.]
+#     pl_x = pl_x.flatten()
+#     pl_y = pl_y.flatten()
+#     pl_z = np.zeros_like(pl_y) + zz
+#     z_plane = np.vstack((pl_x, pl_y, pl_z)).T
+#     z_plane = inside_brain(z_plane)
+#     return x_plane, y_plane, z_plane
 
 
 def get_cubic_grid(res, ipsilateral):

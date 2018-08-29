@@ -8,6 +8,37 @@ import parameters as params
 from glob import glob
 
 
+def fetch_cut_planes(xx, yy, zz, res=1.):
+    '''gets you planes (as np.array points ) for sag, ax and trav planes'''
+    xmin, xmax, ymin, ymax, zmin, zmax = params.limits_brain(ipsilateral=False)
+    plane_pt_idx = []
+    # X plane
+    pl_y, pl_z = np.mgrid[ymin:ymax:res,
+                          zmin:zmax:res]
+    pl_y = pl_y.flatten()
+    pl_z = pl_z.flatten()
+    pl_x = np.zeros_like(pl_y) + xx
+    x_plane = np.vstack((pl_x, pl_y, pl_z)).T
+    #x_plane = inside_brain(x_plane)
+    # Y plane
+    pl_x, pl_z = np.mgrid[xmin:xmax:res,
+                          zmin:zmax:res]
+    pl_x = pl_x.flatten()
+    pl_z = pl_z.flatten()
+    pl_y = np.zeros_like(pl_x) + yy
+    y_plane = np.vstack((pl_x, pl_y, pl_z)).T
+    #y_plane = inside_brain(y_plane)
+    # Z plane
+    pl_x, pl_y = np.mgrid[xmin:xmax:res,
+                          ymin:ymax:res]
+    pl_x = pl_x.flatten()
+    pl_y = pl_y.flatten()
+    pl_z = np.zeros_like(pl_y) + zz
+    z_plane = np.vstack((pl_x, pl_y, pl_z)).T
+    #z_plane = inside_brain(z_plane)
+    return x_plane, y_plane, z_plane
+
+
 def extract_pots(phi, positions):
     compt_values = np.zeros(positions.shape[0])
     for ii in range(positions.shape[0]):
@@ -45,12 +76,14 @@ def test_few_points():
 
 def find_nearest_avail_pt(pos, xx, yy, zz):
     '''Fetches the closes available point in pos'''
+    print('Checking for :', xx, yy, zz)
     k = np.array((xx, yy, zz))
     dists = np.linalg.norm(pos-k, axis=1)
     if np.min(dists) != 0.0:
         print('Exact point is unavailable')
         print('Picking the closest point to the selection')
-    xx, yy, zz = pos[np.argmin(dists), :]
+        print('Closest point is: ', pos[np.argmin(dists)])
+    xx, yy, zz = pos[np.argmin(dists)]
     return xx, yy, zz
 
 
@@ -66,20 +99,24 @@ def which_file(path, sbspt, pos, src_idx):
     num_proc = how_many_procs(path, sbspt)
     num_pts = len(pos)
     proc_vals = np.linspace(0, num_pts, num_proc + 1).astype(int)
-    proc_idx = np.argmax(proc_vals > src_idx)-1
-    if proc_idx == -1:
+    proc_idx = np.argmax(proc_vals > src_idx) - 1
+    if proc_idx == -1:  # perhaps the last entry
         proc_idx = len(proc_vals) - 1
     f_string = os.path.join(path, sbspt + str(num_proc)
-                            + '_' + str(proc_idx) + '.h5')
+                            + '_' + str(proc_idx + 1) + '.h5')   # + 1 because numbering for proc idx starts from 1
     return f_string
-    
-def obtain_orth_planes(src_loc, xx, yy, zz, conductivity, save=False):
-    ''' Sources placed at src_loc, with orth planes meeting at xx, yy, zz 
+
+
+def obtain_orth_planes(src_label, orig_label, conductivity, save=False):
+    ''' Sources placed at src_label, with orth planes meeting at orig_label 
     The pots observed at the corresponding xx, yy, zz planes is reported
-    - dumps three npy arrays corresp to each plane'''
+    - dumps an npz with arrays corres to orig_label corresp to each plane'''
     mesh = meshes.load_just_mesh()
     pos_list, conductivity, path, sbspt = params.default_run(conductivity)
-    src_x, src_y, src_z = src_loc
+    sp_pts = params.load_special_points()
+    src_x, src_y, src_z = sp_pts[src_label]
+    xx, yy, zz = sp_pts[orig_label]
+    print('Testing if src location has exact probe point')
     src_loc = find_nearest_avail_pt(pos_list, src_x, src_y, src_z)
     k = np.array((src_loc))
     dists = np.linalg.norm(pos_list-k, axis=1)
@@ -87,23 +124,25 @@ def obtain_orth_planes(src_loc, xx, yy, zz, conductivity, save=False):
     f_string = which_file(path, sbspt, pos_list, src_idx)
     dump_file = load_file(os.path.join(path, f_string), mesh)
     this_phi = load_vector(dump_file, mesh, str(src_idx))
-    planes = fetch_cut_planes(xx, yy, zz)
+    planes = fetch_cut_planes(xx, yy, zz, 0.1)
+    ### TODO - FUTURE
     ### instead get this from params as a special planes
     ### Planes get dumped from probe_points file instead - so premtively obtain these planes.
     phi_planes = []
-    #  plane pots 
-    for ii, label in enumerate('x', 'y', 'z'):
+    #  plane pots
+    for ii, label in enumerate(['x', 'y', 'z']):
         ele_list = planes[ii]
         num_ele = len(ele_list)
         phi_mat = np.zeros((1, num_ele))
         phi_mat[0, :] = extract_pots(this_phi, np.array(ele_list))
         phi_planes.append(phi_mat)
     dump_file.close()
-    print(phi_planes)
     if save:
-        phi_mat_fname = sbspt + conductivity + '_plane_phi_mat.npy'
-        np.save(os.path.join(path, phi_mat_fname), phi_mat)
-    return phi_mat
+        phi_mat_fname = sbspt + conductivity + '_' + src_label + '_' + orig_label + '_phi_mat.npy'
+        np.savez(os.path.join(path, phi_mat_fname),
+                 xx=phi_planes[0], yy=phi_planes[1], zz=phi_planes[2],
+                 x_plane=planes[0], y_plane=planes[1], z_plane=planes[2])
+    return
     
 
 def obtain_unsorted_srcVele(conductivity, save=False):
@@ -127,7 +166,7 @@ def obtain_unsorted_srcVele(conductivity, save=False):
     if save:
         phi_mat_fname = sbspt + conductivity + '_phi_mat.npy'
         np.save(os.path.join(path, phi_mat_fname), phi_mat)
-    return phi_mat
+    return
 
 def obtain_traubs_srcVele(conductivity, save=False):
     '''Fetch the potentials for the default run - SEEG section For Traubs column'''
@@ -152,11 +191,11 @@ def obtain_traubs_srcVele(conductivity, save=False):
     if save:
         phi_mat_fname = sbspt + conductivity + '_traub_phi_mat.npy'
         np.save(os.path.join(path, phi_mat_fname), phi_mat)
-    return phi_mat
+    return
 
 
 # obtain_unsorted_srcVele('anisotropic', save=True)
 # obtain_unsorted_srcVele('homogeneous', save=True)
 # obtain_unsorted_srcVele('inhomogeneous', save=True)
 # obtain_traubs_srcVele('anisotropic', save=True)
-obtain_orth_planes(np.array((5., 23., -5.)), 5, 23., -6., 'anisotropic', save=False)
+obtain_orth_planes('sp1', 'sp2', 'anisotropic', save=True)

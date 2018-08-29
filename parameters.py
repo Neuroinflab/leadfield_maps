@@ -81,6 +81,14 @@ def default_run(conductivity='anisotropic'):
     return pos_list, conductivity, path, sbspt
 
 
+def load_special_points():
+    # DO NOT EDIT THESE POINTS
+    sp_pts = {}
+    sp_pts['sp1'] = np.array((5., 23., -5.))   
+    sp_pts['sp2'] = np.array((5., 23., -6))
+    return sp_pts
+
+
 def load_traub_morph_props():
     # Fetch traub points
     num_cmpts = [74, 74, 59, 59, 59, 59, 61, 61, 50, 59, 59, 59]
