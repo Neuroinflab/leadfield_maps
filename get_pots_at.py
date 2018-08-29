@@ -138,7 +138,7 @@ def obtain_orth_planes(src_label, orig_label, conductivity, save=False):
         phi_planes.append(phi_mat)
     dump_file.close()
     if save:
-        phi_mat_fname = sbspt + conductivity + '_' + src_label + '_' + orig_label + '_phi_mat.npy'
+        phi_mat_fname = sbspt + conductivity + '_' + src_label + '_' + orig_label + '_phi_mat.npz'
         np.savez(os.path.join(path, phi_mat_fname),
                  xx=phi_planes[0], yy=phi_planes[1], zz=phi_planes[2],
                  x_plane=planes[0], y_plane=planes[1], z_plane=planes[2])
