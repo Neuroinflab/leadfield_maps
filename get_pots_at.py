@@ -75,16 +75,17 @@ def test_few_points():
 
 
 def find_nearest_avail_pt(pos, xx, yy, zz):
-    '''Fetches the closes available point in pos'''
+    '''Fetches the closes available point in pos - returns index'''
     print('Checking for :', xx, yy, zz)
     k = np.array((xx, yy, zz))
     dists = np.linalg.norm(pos-k, axis=1)
     if np.min(dists) != 0.0:
         print('Exact point is unavailable')
         print('Picking the closest point to the selection')
+        print('Closest point index is:', np.argmin(dists))
         print('Closest point is: ', pos[np.argmin(dists)])
-    xx, yy, zz = pos[np.argmin(dists)]
-    return xx, yy, zz
+    #xx, yy, zz = pos[np.argmin(dists)]
+    return np.argmin(dists)
 
 
 def how_many_procs(path, sbspt):
@@ -117,8 +118,8 @@ def obtain_orth_planes(src_label, orig_label, conductivity, save=False):
     src_x, src_y, src_z = sp_pts[src_label]
     xx, yy, zz = sp_pts[orig_label]
     print('Testing if src location has exact probe point')
-    src_loc = find_nearest_avail_pt(pos_list, src_x, src_y, src_z)
-    k = np.array((src_loc))
+    src_idx = find_nearest_avail_pt(pos_list, src_x, src_y, src_z)
+    k = np.array((pos_list[src_idx]))
     dists = np.linalg.norm(pos_list-k, axis=1)
     src_idx = np.argmin(dists)    
     f_string = which_file(path, sbspt, pos_list, src_idx)
@@ -168,10 +169,15 @@ def obtain_unsorted_srcVele(conductivity, save=False):
         np.save(os.path.join(path, phi_mat_fname), phi_mat)
     return
 
-def obtain_traubs_srcVele(conductivity, save=False):
+def obtain_traubs_srcVele(conductivity, run_type='seeg', save=False):
     '''Fetch the potentials for the default run - SEEG section For Traubs column'''
     mesh = meshes.load_just_mesh()
-    pos_list, conductivity, path, sbspt = params.default_run(conductivity)
+    if run_type == 'seeg':
+        pos_list, conductivity, path, sbspt = params.default_run(conductivity)
+    elif run_type == 'ecog':
+        pos_list, conductivity, path, sbspt = params.ecog_run(size=0.98)
+    elif run_type == 'heeg':
+        pos_list, conductivity, path, sbspt = params.hippo_eeg_run()
     num_pts = len(pos_list)
     ele_list = params.load_traubs_points() # points from traubs colum
     num_ele = len(ele_list)
@@ -189,7 +195,7 @@ def obtain_traubs_srcVele(conductivity, save=False):
         dump_file.close()
         print('Finished processing proc number: ', proc_idx)
     if save:
-        phi_mat_fname = sbspt + conductivity + '_traub_phi_mat.npy'
+        phi_mat_fname = sbspt + conductivity + '_' + run_type + '_traub_phi_mat.npy'
         np.save(os.path.join(path, phi_mat_fname), phi_mat)
     return
 
@@ -197,5 +203,16 @@ def obtain_traubs_srcVele(conductivity, save=False):
 # obtain_unsorted_srcVele('anisotropic', save=True)
 # obtain_unsorted_srcVele('homogeneous', save=True)
 # obtain_unsorted_srcVele('inhomogeneous', save=True)
-# obtain_traubs_srcVele('anisotropic', save=True)
-obtain_orth_planes('sp1', 'sp2', 'anisotropic', save=True)
+# obtain_traubs_srcVele('anisotropic', run_type='seeg', save=True)
+# obtain_traubs_srcVele('anisotropic', run_type='ecog', save=True)
+# obtain_traubs_srcVele('anisotropic', run_type='heeg', save=True)
+# obtain_traubs_srcVele('anisotropic', run_type='heeg', save=True)
+# obtain_orth_planes('sp1', 'sp2', 'anisotropic', save=False)
+
+
+# # Testing for inspect_pot_vals
+pos_list, conductivity, path, sbspt = params.default_run('anisotropic')
+sp_pts = params.load_special_points()
+src_x, src_y, src_z = sp_pts['sp3']
+src_idx = find_nearest_avail_pt(pos_list, src_x, src_y, src_z)
+print(which_file(path, sbspt, pos_list, src_idx))

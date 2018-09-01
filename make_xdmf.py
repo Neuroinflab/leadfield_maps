@@ -9,7 +9,9 @@ import parameters as params
 
 ele_coords, conductivity, path, sbspt = params.default_run('anisotropic')
 #filepath = os.path.join(path, 'traub_pots_v_t.h5')
-filepath = 'traub_pots_v_t.h5'
+# filepath = 'traub_pots_v_t.h5'
+# filepath = 'traub_ecog_pots_v_t.h5'
+filepath = 'traub_heeg_pots_v_t.h5'
 f = h5.File(filepath, 'r')
 num_ele, dims = f['ele_pos'].value.shape
 f.close()
@@ -23,7 +25,7 @@ def prettify(elem):
     return reparsed.toprettyxml(indent="  ")
 
 
-def write_xdmf(filename='output.xdmf', num_ele=num_ele, dims=dims, start_t=start_t, end_t=end_t):
+def write_xdmf(filename='output_heeg.xdmf', num_ele=num_ele, dims=dims, start_t=start_t, end_t=end_t):
     """Write an XDMF file to accompany the HDF5 data file.
     """
     # Create the basic structure

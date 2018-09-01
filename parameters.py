@@ -86,6 +86,7 @@ def load_special_points():
     sp_pts = {}
     sp_pts['sp1'] = np.array((5., 23., -5.))   
     sp_pts['sp2'] = np.array((5., 23., -6))
+    sp_pts['sp3'] = np.array((6.7, 22.6, -4.55))  # point in cortex_L
     return sp_pts
 
 

@@ -17,7 +17,7 @@ def get_plane_thr_three_pts(pt1, pt2, pt3):
     D = get_plane_thr_pt(A, B, C, pt1)
     return A, B, C, D
 
-def get_plane(pt2, pt3):
+def get_plane_thr_two_pts(pt2, pt3):
     ''' Get a plane passing through two points and origin
     Ax + By + Cz = D , returns A, B, C, D'''
     A = pt2[1] * pt3[2] - pt3[1] * pt2[2]
@@ -87,7 +87,7 @@ def get_plane_thr_twopts_orig(src_pos, snk_pos):
     of the plane'''
 
     grid_x_plane, grid_y_plane = np.mgrid[-0.9:0.9:42j, -0.9:0.9:42j]
-    pl_A, pl_B, pl_C, pl_D = get_plane(src_pos, snk_pos)
+    pl_A, pl_B, pl_C, pl_D = get_plane_thr_two_pts(src_pos, snk_pos)
     print(is_on_plane(pl_A, pl_B, pl_C, pl_D, snk_pos))
     grid_z_plane = get_irreg_pts_plane(pl_A, pl_B, pl_C, pl_D,
                                        grid_x_plane, grid_y_plane)

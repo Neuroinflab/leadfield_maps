@@ -28,7 +28,7 @@ def fetch_pop_pots(pop_name):
     return pots_pop
 
 def write_hdf5(path, ele_pots, ele_coords, start_t, end_t):
-    with h5py.File(os.path.join(path, 'traub_pots_v_t.h5'), 'w') as hf:
+    with h5py.File(os.path.join(path, 'traub_heeg_pots_v_t.h5'), 'w') as hf:
         hf.create_dataset("ele_pos",  data=ele_coords)
         for ii in range(start_t, end_t):
             tt = ii-start_t
@@ -42,9 +42,17 @@ def write_hdf5(path, ele_pots, ele_coords, start_t, end_t):
 
 num_cmpts, cell_range, pop_names, num_cells, total_cmpts = params.load_traub_morph_props()
 # Fetch electrode points
-ele_coords, conductivity, path, sbspt = params.default_run('anisotropic')
+# SEEG run
+# ele_coords, conductivity, path, sbspt = params.default_run('anisotropic')
 # fetch pot
-phi_mat_fname = sbspt + conductivity + '_traub_phi_mat.npy'
+# phi_mat_fname = sbspt + conductivity + '_seeg_traub_phi_mat.npy'
+#Ecog at 0.98
+# ele_coords, conductivity, path, sbspt = params.ecog_run(size=0.98)
+# phi_mat_fname = sbspt + conductivity + '_ecog_traub_phi_mat.npy'
+#Hippocampal eeg
+ele_coords, conductivity, path, sbspt = params.hippo_eeg_run()
+phi_mat_fname = sbspt + conductivity + '_heeg_traub_phi_mat.npy'
+
 pots = np.load(os.path.join(path, phi_mat_fname))  # shape = ele x traub_pos_list
 start_t, end_t  = 2750, 3750
 field_names = ['i']
